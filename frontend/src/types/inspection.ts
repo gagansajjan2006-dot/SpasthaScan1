@@ -41,6 +41,22 @@ export interface ScreenCaptureDetail {
   subpixel_pattern_detected?: boolean | null;
 }
 
+export interface DetectedScriptInfo {
+  detected_script: string; // 'Devanagari' | 'Kannada' | 'Tamil' | 'Telugu' | 'Arabic' | 'Latin' | 'Unknown'
+  lang_used: string;
+  lang_note?: string | null;
+}
+
+export interface IdChecks {
+  aspect_ratio: number;
+  aspect_ratio_ok: boolean;
+  corners_visible: boolean;
+  glare_central_pct: number;
+  glare_central_ok: boolean;
+  face_visible: boolean;
+  face_cascade_available: boolean;
+}
+
 export interface InspectionResult {
   is_document: boolean;
   document_type: DocumentType;
@@ -63,6 +79,8 @@ export interface InspectionResult {
   cropping_details?: CroppingDetails;
   obstruction?: ObstructionDetail | null;
   screen_capture?: ScreenCaptureDetail | null;
+  detected_script?: DetectedScriptInfo | null;
+  id_checks?: IdChecks | null;
   processing_time_ms?: number;
   filename?: string;
   timestamp?: string;

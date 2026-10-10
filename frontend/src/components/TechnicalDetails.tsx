@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Cpu, Gauge, Type, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Cpu, Gauge, Type, AlertCircle, Clock, CheckCircle, Globe, CreditCard } from 'lucide-react';
 import type { InspectionResult } from '../types/inspection';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -211,6 +211,108 @@ export const TechnicalDetails: React.FC<TechnicalDetailsProps> = ({ result }) =>
                       {result.screen_capture?.moire_score !== undefined ? `Moiré Score: ${result.screen_capture.moire_score}` : 'Score: 0.0'}
                     </span>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Detected Script & Multilingual OCR */}
+          {result.detected_script && (
+            <div className="my-4 p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-100">
+              <div className="flex items-center gap-1.5 font-semibold text-indigo-800 mb-2">
+                <Globe className="w-4 h-4 text-indigo-600" />
+                <span>Multilingual OCR — Detected Script</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-white border border-indigo-100">
+                  <span className="text-slate-500 block">Script</span>
+                  <span className="font-bold text-indigo-700 font-mono">
+                    {result.detected_script.detected_script}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white border border-indigo-100">
+                  <span className="text-slate-500 block">Language Pack Used</span>
+                  <span className="font-bold text-slate-800 font-mono">
+                    {result.detected_script.lang_used}
+                  </span>
+                </div>
+              </div>
+              {result.detected_script.lang_note && (
+                <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  ⚠ {result.detected_script.lang_note}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ID Card Physical Checks */}
+          {result.id_checks && (
+            <div className="my-4 p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
+              <div className="flex items-center gap-1.5 font-semibold text-emerald-800 mb-2">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+                <span>ID Card Physical Checks</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className={`p-2.5 rounded-lg border ${
+                  result.id_checks.aspect_ratio_ok
+                    ? 'bg-white border-emerald-200'
+                    : 'bg-rose-50 border-rose-200'
+                }`}>
+                  <span className="text-slate-500 block">Aspect Ratio</span>
+                  <span className={`font-bold font-mono ${
+                    result.id_checks.aspect_ratio_ok ? 'text-emerald-700' : 'text-rose-600'
+                  }`}>
+                    {result.id_checks.aspect_ratio} {result.id_checks.aspect_ratio_ok ? '✓' : '✗'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">CR80 target 1.586</span>
+                </div>
+
+                <div className={`p-2.5 rounded-lg border ${
+                  result.id_checks.corners_visible
+                    ? 'bg-white border-emerald-200'
+                    : 'bg-rose-50 border-rose-200'
+                }`}>
+                  <span className="text-slate-500 block">Corners</span>
+                  <span className={`font-bold font-mono ${
+                    result.id_checks.corners_visible ? 'text-emerald-700' : 'text-rose-600'
+                  }`}>
+                    {result.id_checks.corners_visible ? 'All 4 Visible ✓' : 'Missing ✗'}
+                  </span>
+                </div>
+
+                <div className={`p-2.5 rounded-lg border ${
+                  result.id_checks.glare_central_ok
+                    ? 'bg-white border-emerald-200'
+                    : 'bg-amber-50 border-amber-200'
+                }`}>
+                  <span className="text-slate-500 block">Central Glare</span>
+                  <span className={`font-bold font-mono ${
+                    result.id_checks.glare_central_ok ? 'text-emerald-700' : 'text-amber-600'
+                  }`}>
+                    {result.id_checks.glare_central_pct}% {result.id_checks.glare_central_ok ? '✓' : '⚠'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Threshold 40%</span>
+                </div>
+
+                <div className={`p-2.5 rounded-lg border ${
+                  result.id_checks.face_visible
+                    ? 'bg-white border-emerald-200'
+                    : result.id_checks.face_cascade_available
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <span className="text-slate-500 block">Photo Region</span>
+                  <span className={`font-bold font-mono ${
+                    result.id_checks.face_visible
+                      ? 'text-emerald-700'
+                      : result.id_checks.face_cascade_available
+                      ? 'text-amber-600'
+                      : 'text-slate-500'
+                  }`}>
+                    {result.id_checks.face_cascade_available
+                      ? result.id_checks.face_visible ? 'Face ✓' : 'Not Found ⚠'
+                      : 'N/A (no cascade)'}
+                  </span>
                 </div>
               </div>
             </div>

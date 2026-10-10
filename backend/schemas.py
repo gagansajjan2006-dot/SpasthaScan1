@@ -30,6 +30,24 @@ class ScreenCaptureDetail(BaseModel):
     periodic_energy_ratio: Optional[float] = None
     subpixel_pattern_detected: Optional[bool] = None
 
+class IdChecks(BaseModel):
+    """Physical validation checks specific to ID-type documents (Aadhaar, PAN, DL, etc.)"""
+    aspect_ratio: float = Field(description="Measured width/height ratio")
+    aspect_ratio_ok: bool = Field(description="True if within tolerance of CR80 standard (1.586)")
+    corners_visible: bool = Field(description="True if all four document corners were detected")
+    glare_central_pct: float = Field(description="Percentage of the central 40% area that is overexposed/glare")
+    glare_central_ok: bool = Field(description="True if glare is below the configured threshold (40%)")
+    face_visible: bool = Field(description="True if a face was detected via Haar cascade (no identification, not stored)")
+    face_cascade_available: bool = Field(description="True if the Haar cascade XML was found at runtime")
+
+
+class DetectedScriptInfo(BaseModel):
+    """OCR script detection results for multilingual support (eng/hin/kan)."""
+    detected_script: str = Field(description="Dominant Unicode script: Devanagari, Kannada, Tamil, Telugu, Arabic, Latin, or Unknown")
+    lang_used: str = Field(description="Tesseract language string actually used for OCR")
+    lang_note: Optional[str] = Field(default=None, description="Warning message if language pack fallback occurred")
+
+
 class InspectionResponse(BaseModel):
     is_document: bool
     document_type: Literal["photo", "scan", "other", "uncertain"]
@@ -52,6 +70,8 @@ class InspectionResponse(BaseModel):
     cropping_details: Optional[Dict[str, Any]] = None
     obstruction: Optional[ObstructionDetail] = None
     screen_capture: Optional[ScreenCaptureDetail] = None
+    detected_script: Optional[DetectedScriptInfo] = None
+    id_checks: Optional[IdChecks] = None
     processing_time_ms: Optional[float] = None
     filename: Optional[str] = None
     timestamp: Optional[str] = None

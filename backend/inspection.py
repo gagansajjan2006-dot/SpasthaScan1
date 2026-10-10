@@ -3,9 +3,10 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from schemas import InspectionResponse, ImageMetrics, ObstructionDetail, ScreenCaptureDetail
+from schemas import InspectionResponse, ImageMetrics, ObstructionDetail, ScreenCaptureDetail, IdChecks, DetectedScriptInfo
 import image_metrics
 import vision_analyzer
+import second_opinion
 
 logger = logging.getLogger("docucheck.inspection")
 
@@ -264,12 +265,47 @@ async def inspect_document(
     else:
         analysis_status = "completed"
 
-    # Determine document category
-    doc_category = image_metrics.detect_document_category(
+    # Determine document category using text + aspect-ratio ONLY (no filename)
+    doc_category, is_id_type = second_opinion.categorize_document(
         detected_text=text_info.get("ocr_detected_text", ""),
+        aspect_ratio=base_metrics["aspect_ratio"],
         is_document=is_document,
-        filename=filename
     )
+
+    # 10. Multilingual OCR (eng+hin+kan, script detection, graceful fallback)
+    ml_ocr = second_opinion.run_multilingual_ocr(img_bgr, policy=policy)
+    detected_script_obj = DetectedScriptInfo(
+        detected_script=ml_ocr["detected_script"],
+        lang_used=ml_ocr["lang_used"],
+        lang_note=ml_ocr.get("lang_note"),
+    )
+    # Supplement text with multilingual result if richer
+    if ml_ocr["ocr_word_count"] > text_info["ocr_word_count"]:
+        text_info["ocr_confidence"] = ml_ocr["ocr_confidence"]
+        text_info["ocr_word_count"] = ml_ocr["ocr_word_count"]
+        text_info["ocr_detected_text"] = ml_ocr["ocr_text"]
+        base_metrics["ocr_confidence"] = ml_ocr["ocr_confidence"]
+        base_metrics["ocr_word_count"] = ml_ocr["ocr_word_count"]
+        base_metrics["ocr_detected_text"] = ml_ocr["ocr_text"]
+
+    # 11. ID-card physical checks (only for ID-type docs)
+    id_checks_obj: Optional[IdChecks] = None
+    if is_id_type and is_document:
+        id_raw = second_opinion.run_id_card_checks(
+            img_bgr=img_bgr,
+            doc_boundary=doc_boundary,
+            policy=policy,
+        )
+        id_checks_obj = IdChecks(**id_raw)
+        # Add ID-specific issue codes
+        if not id_raw["aspect_ratio_ok"]:
+            issues.append("ID_ASPECT_MISMATCH")
+        if not id_raw["corners_visible"]:
+            issues.append("ID_CORNERS_MISSING")
+        if not id_raw["glare_central_ok"]:
+            issues.append("ID_GLARE_CENTRAL")
+        if id_raw["face_cascade_available"] and not id_raw["face_visible"]:
+            issues.append("ID_FACE_NOT_DETECTED")
 
     obstruction_obj = ObstructionDetail(**obs_screen_info["obstruction"]) if (obs_screen_info["has_obstruction"] or obs_screen_info["obstruction_pct"] > 0) else None
     screen_capture_obj = ScreenCaptureDetail(**obs_screen_info["screen_capture"]) if (obs_screen_info["is_screen_photo"] or obs_screen_info["moire_score"] > 0) else None
@@ -296,6 +332,8 @@ async def inspect_document(
         cropping_details=crop_info,
         obstruction=obstruction_obj,
         screen_capture=screen_capture_obj,
+        detected_script=detected_script_obj,
+        id_checks=id_checks_obj,
         processing_time_ms=processing_time_ms,
         filename=filename,
         timestamp=datetime.utcnow().isoformat() + "Z"
