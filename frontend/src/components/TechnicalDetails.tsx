@@ -182,6 +182,40 @@ export const TechnicalDetails: React.FC<TechnicalDetailsProps> = ({ result }) =>
             )}
           </div>
 
+          {/* Advanced Physical Artifacts (Obstruction & Screen Capture) */}
+          {(result.obstruction || result.screen_capture) && (
+            <div className="my-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+              <span className="font-semibold text-slate-700 block mb-2">
+                Physical Camera & Capture Diagnostics:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="font-medium text-slate-500 block">Finger / Hand Obstruction</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="font-bold text-slate-900 font-mono">
+                      {result.obstruction?.has_obstruction ? 'DETECTED' : 'None'}
+                    </span>
+                    <span className="text-slate-500 font-mono">
+                      {result.obstruction?.obstruction_pct ? `${result.obstruction.obstruction_pct}% coverage (${result.obstruction.corner_detail || result.obstruction.obstruction_region || 'border'})` : '0.0%'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="font-medium text-slate-500 block">Screen Capture (Moiré)</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="font-bold text-slate-900 font-mono">
+                      {result.screen_capture?.is_screen_photo ? 'DETECTED' : 'None'}
+                    </span>
+                    <span className="text-slate-500 font-mono">
+                      {result.screen_capture?.moire_score !== undefined ? `Moiré Score: ${result.screen_capture.moire_score}` : 'Score: 0.0'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* OCR Sample Snippet */}
           {metrics?.ocr_detected_text && (
             <div className="mt-4 pt-3 border-t border-slate-100">

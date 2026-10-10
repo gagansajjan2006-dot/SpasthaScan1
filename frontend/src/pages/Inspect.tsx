@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UploadZone } from '../components/UploadZone';
 import { ImagePreview } from '../components/ImagePreview';
 import { ResultCard } from '../components/ResultCard';
+import { IssueList } from '../components/IssueList';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { TechnicalDetails } from '../components/TechnicalDetails';
 import { inspectDocumentImage } from '../services/api';
@@ -159,6 +160,8 @@ export const Inspect: React.FC<InspectProps> = ({
                   (inspectionResult.metrics?.blur_score !== undefined && inspectionResult.metrics.blur_score < 65)
                 }
                 rawFile={selectedFile}
+                obstruction={inspectionResult.obstruction}
+                screenCapture={inspectionResult.screen_capture}
               />
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
@@ -175,19 +178,22 @@ export const Inspect: React.FC<InspectProps> = ({
             )}
           </div>
 
-          {/* Right Column: Results, Cards, Feedback, Technical Details */}
+          {/* Right Column: Results, Cards, Issue List, Feedback, Technical Details */}
           <div className="lg:col-span-7 space-y-6">
             
             {/* 1. Results Cards */}
             <ResultCard result={inspectionResult} />
 
-            {/* 2. Feedback & Actionable Recommendations */}
+            {/* 2. Detected Issues List with Fix Directives */}
+            <IssueList result={inspectionResult} />
+
+            {/* 3. Feedback & Actionable Recommendations */}
             <FeedbackPanel
               result={inspectionResult}
               onInspectAnother={handleClear}
             />
 
-            {/* 3. Collapsible Technical Details */}
+            {/* 4. Collapsible Technical Details */}
             <TechnicalDetails result={inspectionResult} />
 
           </div>

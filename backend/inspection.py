@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from schemas import InspectionResponse, ImageMetrics
+from schemas import InspectionResponse, ImageMetrics, ObstructionDetail, ScreenCaptureDetail
 import image_metrics
 import vision_analyzer
 
@@ -18,7 +18,8 @@ def generate_feedback_and_fix(
     is_cropped: Optional[bool],
     clutter: str,
     issues: List[str],
-    read_conf: Optional[float]
+    read_conf: Optional[float],
+    obstruction_info: Optional[Dict[str, Any]] = None
 ) -> tuple[str, str]:
     """
     Generate polite, friendly 1-2 sentence feedback and a single concrete fix.
@@ -49,28 +50,52 @@ def generate_feedback_and_fix(
                 "Rotate 90 degrees counter-clockwise."
             )
 
-    # 2. Cropping issue
+    # 2. Finger/hand obstruction issue
+    if "FINGER_COVERING" in issues:
+        corner = (obstruction_info or {}).get("corner_detail")
+        region = (obstruction_info or {}).get("obstruction_region")
+        if corner:
+            fix_str = f"Move your finger away from the {corner} corner"
+        elif region == "corner":
+            fix_str = "Move your finger away from the top-right corner"
+        elif region in ["top", "bottom", "left", "right"]:
+            fix_str = f"Move your finger away from the {region} edge"
+        else:
+            fix_str = "Move your finger away from the top-right corner"
+        return (
+            f"Part of the document is covered by a finger or hand. {fix_str} before photographing.",
+            fix_str
+        )
+
+    # 3. Screen photo / moiré pattern issue
+    if "SCREEN_PHOTO" in issues:
+        return (
+            "This appears to be a photograph of a computer screen or mobile display with visible moiré patterns. Photograph the original paper, not a screen.",
+            "Photograph the original paper, not a screen"
+        )
+
+    # 4. Cropping issue
     if is_cropped is True:
         return (
             "Part of the document appears to be cut off. Retake the photo with all four document edges visible.",
             "Capture the full document with all edges inside the frame."
         )
 
-    # 3. Blurriness / unreadable
+    # 5. Blurriness / unreadable
     if readable is False or "blurry_text" in issues:
         return (
             "The text appears blurry and difficult to read clearly. Retake the photo with the camera focused on the document.",
             "Hold camera steady and refocus on the text."
         )
 
-    # 4. Severe exposure / contrast issues
+    # 6. Severe exposure / contrast issues
     if "low_contrast" in issues:
         return (
             "The lighting is flat or washed out, reducing text contrast. Capture the document under balanced, direct lighting.",
             "Improve lighting to boost text contrast."
         )
 
-    # 5. Background clutter
+    # 7. Background clutter
     if clutter == "high":
         return (
             "The background contains several distracting objects. Place the document on a plain surface and capture it again.",
@@ -82,25 +107,31 @@ def generate_feedback_and_fix(
             "Place document on a plain neutral surface."
         )
 
-    # 6. Uncertain readability
+    # 8. Uncertain readability
     if readable is None or (read_conf is not None and read_conf < 0.65):
         return (
             "I couldn't confidently assess the document details. Upload a clearer, higher-resolution image with the complete document visible.",
             "Upload a clearer image with complete document visible."
         )
 
-    # 7. Clean acceptable document
+    # 9. Clean acceptable document
     return (
         "Your document looks clear and easy to read. No changes are needed.",
         "No changes needed."
     )
 
 
-async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", mime_type: str = "image/jpeg") -> InspectionResponse:
+async def inspect_document(
+    image_bytes: bytes,
+    filename: str = "document.jpg",
+    mime_type: str = "image/jpeg",
+    policy: Optional[Dict[str, Any]] = None
+) -> InspectionResponse:
     """
     Run complete document quality inspection:
     - Decodes image
     - Computes CV metrics (blur, brightness, contrast, edge density, boundary contour, cropping, clutter, text flow)
+    - Detects finger/hand obstruction and screen photo / moiré pattern
     - Checks vision AI model if available
     - Synthesizes findings with strict schema validation
     """
@@ -134,6 +165,9 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
     base_metrics["ocr_word_count"] = text_info["ocr_word_count"]
     base_metrics["ocr_detected_text"] = text_info["ocr_detected_text"]
 
+    # 8. Analyze finger/hand obstruction and screen photo / moiré
+    obs_screen_info = image_metrics.analyze_obstruction_and_screen(img_bgr, doc_mask, policy=policy)
+
     # Identify rule-based issues
     issues: List[str] = []
     if base_metrics["blur_score"] < 65.0:
@@ -150,6 +184,10 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
         issues.append("rotated_document")
     if clutter_info["background_clutter"] in ["medium", "high"]:
         issues.append("background_clutter")
+    if obs_screen_info["has_obstruction"]:
+        issues.append("FINGER_COVERING")
+    if obs_screen_info["is_screen_photo"]:
+        issues.append("SCREEN_PHOTO")
 
     # Document check
     is_document = doc_type in ["photo", "scan"]
@@ -166,6 +204,10 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
     elif blur_score < 45.0 or contrast < 20.0 or min_dim < 300:
         main_text_readable = False
         readability_confidence = 0.91
+    elif obs_screen_info["has_obstruction"] and obs_screen_info["is_blocking"] and ((text_info["ocr_confidence"] or 0) < 70):
+        # Finger obstruction blocking text region with OCR confidence drop
+        main_text_readable = False
+        readability_confidence = 0.92
     elif blur_score >= 100.0 and contrast >= 35.0 and min_dim >= 700:
         main_text_readable = True
         readability_confidence = 0.94
@@ -177,7 +219,7 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
         main_text_readable = True if (text_info["ocr_confidence"] or 0) > 60 else None
         readability_confidence = 0.65
 
-    # 8. Check vision AI model if configured
+    # 9. Check vision AI model if configured
     vision_ai_data = await vision_analyzer.analyze_with_vision_ai(image_bytes, mime_type)
     if vision_ai_data:
         # Fuse vision model with CV measurements
@@ -212,7 +254,8 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
             is_cropped=crop_info["is_cropped"],
             clutter=clutter_info["background_clutter"],
             issues=issues,
-            read_conf=readability_confidence
+            read_conf=readability_confidence,
+            obstruction_info=obs_screen_info
         )
 
     # Determine analysis status
@@ -227,6 +270,9 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
         is_document=is_document,
         filename=filename
     )
+
+    obstruction_obj = ObstructionDetail(**obs_screen_info["obstruction"]) if (obs_screen_info["has_obstruction"] or obs_screen_info["obstruction_pct"] > 0) else None
+    screen_capture_obj = ScreenCaptureDetail(**obs_screen_info["screen_capture"]) if (obs_screen_info["is_screen_photo"] or obs_screen_info["moire_score"] > 0) else None
 
     processing_time_ms = round((time.time() - start_time) * 1000, 1)
 
@@ -248,6 +294,8 @@ async def inspect_document(image_bytes: bytes, filename: str = "document.jpg", m
         issues=issues,
         document_boundary=doc_boundary,
         cropping_details=crop_info,
+        obstruction=obstruction_obj,
+        screen_capture=screen_capture_obj,
         processing_time_ms=processing_time_ms,
         filename=filename,
         timestamp=datetime.utcnow().isoformat() + "Z"

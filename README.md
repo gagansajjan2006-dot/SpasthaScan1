@@ -229,11 +229,25 @@ Below is an exhaustive, technical and functional analysis of every feature imple
 
 ---
 
-### Feature 18: Service Health Monitoring & Capability Advertising
-* **Purpose & Value**: Provides client-side connectivity monitoring and service discovery.
+### Feature 19: Finger & Hand Obstruction Detection
+* **Purpose & Value**: Detects fingers or hands holding or covering document margins and text, preventing illegible captures before submission.
 * **Functional Behavior**:
-  * The frontend header displays a live health indicator pill (`Connected` in emerald vs `Offline` in amber).
-  * Polling queries [`GET /api/health`](file:///c:/Users/google/SpasthaScan1/backend/main.py#L42-L55) to report server uptime, OCR engine status, supported formats, and upload limits.
+  * Scans the outer 12% border band of the frame for skin-tone blobs using calibrated YCrCb thresholds (`Cr: 133–173`, `Cb: 77–127`).
+  * Filters out noise and verifies blobs larger than 1.5% of the frame that touch the document boundary.
+  * Localizes the obstruction into directional regions (`top`, `bottom`, `left`, `right`, `corner`).
+  * Triggers issue code `FINGER_COVERING` (warning, or blocking if covering text regions) with clear directional fix text: *"Move your finger away from the top-right corner"*.
+  * Returns structured `ObstructionDetail` with `has_obstruction`, `obstruction_pct`, `obstruction_region`, and `is_blocking`.
+
+---
+
+### Feature 20: Photo-of-Screen & Moiré Artifact Detection
+* **Purpose & Value**: Prevents fraudulent or degraded submissions where a user photographs an electronic display (monitor, phone, laptop) rather than an original paper document.
+* **Functional Behavior**:
+  * Resizes the document crop to 512×512 and executes a 2D Fast Fourier Transform (FFT).
+  * Masks center DC components and cardinal cross-axes, then measures periodic spectral peak energy ratios from pixel pitch harmonics.
+  * Checks for visible RGB subpixel color grid patterns via high-frequency color channel correlation.
+  * Triggers issue code `SCREEN_PHOTO` when `moire_score >= moire_max` with exact fix text: *"Photograph the original paper, not a screen"*.
+  * Interactive **Defect Heatmap Layer** toggle in the preview highlights obstruction blobs and moiré patterns directly over the image.
 
 ---
 
@@ -282,6 +296,19 @@ Every inspection returns valid JSON conforming to:
     "cropping_confidence": 0.95,
     "affected_regions": [],
     "poly_touches_frame": false
+  },
+  "obstruction": {
+    "has_obstruction": false,
+    "obstruction_pct": 0.0,
+    "obstruction_region": null,
+    "corner_detail": null,
+    "is_blocking": false
+  },
+  "screen_capture": {
+    "is_screen_photo": false,
+    "moire_score": 0.0,
+    "periodic_energy_ratio": 3.54,
+    "subpixel_pattern_detected": false
   },
   "processing_time_ms": 169.5,
   "filename": "clear_certificate.jpg",

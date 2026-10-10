@@ -25,6 +25,22 @@ export interface CroppingDetails {
   poly_touches_frame?: boolean;
 }
 
+export interface ObstructionDetail {
+  has_obstruction: boolean;
+  obstruction_pct: number;
+  obstruction_region: 'top' | 'bottom' | 'left' | 'right' | 'corner' | 'null' | string | null;
+  corner_detail?: string | null;
+  is_blocking: boolean;
+  heatmap_coords?: [number, number][] | null;
+}
+
+export interface ScreenCaptureDetail {
+  is_screen_photo: boolean;
+  moire_score: number;
+  periodic_energy_ratio?: number | null;
+  subpixel_pattern_detected?: boolean | null;
+}
+
 export interface InspectionResult {
   is_document: boolean;
   document_type: DocumentType;
@@ -45,6 +61,8 @@ export interface InspectionResult {
   issues?: string[];
   document_boundary?: [number, number][] | null;
   cropping_details?: CroppingDetails;
+  obstruction?: ObstructionDetail | null;
+  screen_capture?: ScreenCaptureDetail | null;
   processing_time_ms?: number;
   filename?: string;
   timestamp?: string;

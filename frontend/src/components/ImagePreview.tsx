@@ -8,9 +8,11 @@ import {
   Sparkles, 
   FileText, 
   Eye, 
-  SplitSquareVertical
+  SplitSquareVertical,
+  Flame
 } from 'lucide-react';
 import { enhanceDocumentImage } from '../services/api';
+import type { ObstructionDetail, ScreenCaptureDetail } from '../types/inspection';
 
 interface ImagePreviewProps {
   imageSrc: string;
@@ -20,6 +22,8 @@ interface ImagePreviewProps {
   suggestedRotation?: number | null;
   isBlurry?: boolean;
   rawFile?: File | null;
+  obstruction?: ObstructionDetail | null;
+  screenCapture?: ScreenCaptureDetail | null;
 }
 
 type ViewMode = 'original' | 'enhanced' | 'scan' | 'compare';
@@ -32,10 +36,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   suggestedRotation,
   isBlurry = false,
   rawFile = null,
+  obstruction = null,
+  screenCapture = null,
 }) => {
   const [zoom, setZoom] = useState<number>(1);
   const [rotationDegrees, setRotationDegrees] = useState<number>(0);
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
+  const [showHeatmap, setShowHeatmap] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<ViewMode>(isBlurry ? 'compare' : 'original');
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [scanUrl, setScanUrl] = useState<string | null>(null);
@@ -248,6 +255,21 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
               <span className="hidden sm:inline">Boundary</span>
             </button>
           )}
+
+          {/* Defect Heatmap Layer Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            title={showHeatmap ? 'Hide Defect Heatmap' : 'Show Defect Heatmap (Obstruction & Screen Moiré)'}
+            className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 font-medium ${
+              showHeatmap
+                ? 'bg-rose-50 border-rose-300 text-rose-700 font-semibold shadow-2xs'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-rose-500" />
+            <span className="hidden sm:inline">Heatmap</span>
+          </button>
 
           {/* Quick manual rotate preview */}
           <button
@@ -501,6 +523,92 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 />
               ))}
             </svg>
+          )}
+
+          {/* Defect Heatmap Layer SVG overlay (Obstruction & Screen Moiré) */}
+          {showHeatmap && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <svg
+                className="w-full h-full"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  {/* Radial gradient for skin obstruction blob */}
+                  <radialGradient id="obstructionGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.85" />
+                    <stop offset="60%" stopColor="#f59e0b" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+                  </radialGradient>
+
+                  {/* Periodic moire pattern fill */}
+                  <pattern id="moireGrid" width="6" height="6" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="6" y2="6" stroke="#06b6d4" strokeWidth="0.9" strokeOpacity="0.6" />
+                    <line x1="6" y1="0" x2="0" y2="6" stroke="#ec4899" strokeWidth="0.9" strokeOpacity="0.6" />
+                  </pattern>
+                </defs>
+
+                {/* If Screen Photo / Moire defect */}
+                {screenCapture?.is_screen_photo && (
+                  <rect
+                    x="0"
+                    y="0"
+                    width="100"
+                    height="100"
+                    fill="url(#moireGrid)"
+                    className="animate-pulse"
+                  />
+                )}
+
+                {/* If Obstruction / Finger covering */}
+                {obstruction?.has_obstruction && (
+                  <>
+                    {(() => {
+                      const corner = obstruction.corner_detail;
+                      const reg = obstruction.obstruction_region;
+                      let cx = 85, cy = 15;
+                      if (corner === 'top-left' || reg === 'left') { cx = 15; cy = 15; }
+                      else if (corner === 'bottom-right' || reg === 'bottom') { cx = 85; cy = 85; }
+                      else if (corner === 'bottom-left') { cx = 15; cy = 85; }
+                      else if (reg === 'top') { cx = 50; cy = 10; }
+                      return (
+                        <ellipse
+                          cx={cx}
+                          cy={cy}
+                          rx="22"
+                          ry="18"
+                          fill="url(#obstructionGlow)"
+                          stroke="#ef4444"
+                          strokeWidth="1.2"
+                          strokeDasharray="3,2"
+                        />
+                      );
+                    })()}
+                  </>
+                )}
+              </svg>
+
+              {/* Floating diagnostic badge */}
+              <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 pointer-events-auto">
+                {obstruction?.has_obstruction && (
+                  <span className="px-2.5 py-1 rounded-md bg-rose-600/90 text-white text-[11px] font-semibold backdrop-blur-xs shadow-md flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Obstruction: {obstruction.obstruction_pct}% in {obstruction.corner_detail || obstruction.obstruction_region || 'corner'}</span>
+                  </span>
+                )}
+                {screenCapture?.is_screen_photo && (
+                  <span className="px-2.5 py-1 rounded-md bg-cyan-700/90 text-white text-[11px] font-semibold backdrop-blur-xs shadow-md flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-cyan-300" />
+                    <span>Moiré Pattern: {screenCapture.moire_score}</span>
+                  </span>
+                )}
+                {!obstruction?.has_obstruction && !screenCapture?.is_screen_photo && (
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-700/80 text-white text-[11px] font-semibold backdrop-blur-xs shadow-md">
+                    ✓ Clean Surface: No Obstruction / Moiré Defect
+                  </span>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

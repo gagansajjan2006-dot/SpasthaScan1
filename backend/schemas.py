@@ -16,6 +16,20 @@ class ImageMetrics(BaseModel):
     document_area_ratio: Optional[float] = None
     skew_angle_deg: Optional[float] = None
 
+class ObstructionDetail(BaseModel):
+    has_obstruction: bool
+    obstruction_pct: float
+    obstruction_region: Optional[str] = Field(default=None, description="top, bottom, left, right, corner, or null")
+    corner_detail: Optional[str] = None
+    is_blocking: bool = False
+    heatmap_coords: Optional[List[List[float]]] = None
+
+class ScreenCaptureDetail(BaseModel):
+    is_screen_photo: bool
+    moire_score: float = Field(ge=0.0, le=1.0, description="Periodic energy ratio and subpixel grid pattern score 0..1")
+    periodic_energy_ratio: Optional[float] = None
+    subpixel_pattern_detected: Optional[bool] = None
+
 class InspectionResponse(BaseModel):
     is_document: bool
     document_type: Literal["photo", "scan", "other", "uncertain"]
@@ -36,6 +50,8 @@ class InspectionResponse(BaseModel):
     issues: List[str] = []
     document_boundary: Optional[List[List[float]]] = None  # Normalized points [[x1, y1], [x2, y2], ...]
     cropping_details: Optional[Dict[str, Any]] = None
+    obstruction: Optional[ObstructionDetail] = None
+    screen_capture: Optional[ScreenCaptureDetail] = None
     processing_time_ms: Optional[float] = None
     filename: Optional[str] = None
     timestamp: Optional[str] = None
