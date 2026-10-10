@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "node --experimental-strip-types test_e6_speaker.mjs",
+    "test:speaker": "node --experimental-strip-types test_e6_speaker.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -426,7 +426,26 @@ Execution time for the entire 6-case baseline test suite is under **850 millisec
    - **`BLUR_MOTION`**: Fix prompt: *"Hold the phone steady or use both hands."*
    - **`BLUR_DEFOCUS`**: Fix prompt: *"Tap the text to focus and move slightly farther back."*
 
-### 8.4 Automated Extension Test Results
+### 8.4 Task E6: Spoken Guidance Engine for Camera Coach
+
+1. **Web Speech API Integration (`coachSpeaker.ts`)**:
+   - Synthesizes spoken coaching prompts in real-time as the camera viewfinder observes the document.
+   - **Zero-Repeat Rule**: Only speaks when `coachMessage` transitions to a *new* state. Identical states are never repeated without state transition.
+   - **2-Second Minimum Throttle**: Enforces $\Delta t \ge 2000\text{ ms}$ between consecutive spoken utterances.
+   - **Mute State Machine**: Defaults to unmuted (`isMuted = false`). Toggled via accessible UI button and persisted across sessions in `localStorage` under `spasthascan_coach_muted`. Cancels in-flight utterances immediately upon mute.
+   - **Multilingual Indian Localization**:
+     - Voice target resolved by UI language: Indian English (`en-IN`), Hindi (`hi-IN`), Kannada (`kn-IN`).
+     - Maps camera cues to localized text representations (`COACH_TRANSLATIONS`):
+       - *"Position document flat & centered"* $\rightarrow$ Hindi: *"दस्तावेज़ को सीधा और बीच में रखें"*, Kannada: *"ದಾಖಲೆಯನ್ನು ನೇರವಾಗಿ ಮತ್ತು ಮಧ್ಯದಲ್ಲಿ ಇರಿಸಿ"*.
+       - *"Hold steady to capture"* $\rightarrow$ Hindi: *"फ़ोटो खींचने के लिए फ़ोन स्थिर रखें"*, Kannada: *"ಸೆರೆಹಿಡಿಯಲು ಫೋನ್ ಅನ್ನು ಸ್ಥಿರವಾಗಿಡಿ"*.
+       - *"Hold the phone steady or use both hands"* $\rightarrow$ Hindi: *"फ़ोन को स्थिर रखें या दोनों हाथों का प्रयोग करें"*, Kannada: *"ಫೋನ್ ಅನ್ನು ಸ್ಥಿರವಾಗಿಡಿ ಅಥವಾ ಎರಡೂ ಕೈಗಳನ್ನು ಬಳಸಿ"*.
+       - *"Tap the text to focus and move slightly farther back"* $\rightarrow$ Hindi: *"फ़ोकस करने के लिए टेक्स्ट पर टैप करें और थोड़ा पीछे हटें"*, Kannada: *"ಫೋಕಸ್ ಮಾಡಲು ಪಠ್ಯವನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ ಮತ್ತು ಸ್ವಲ್ಪ ಹಿಂದಕ್ಕೆ ಸರಿಸಿ"*.
+   - **Accessibility & Graceful Degradation**:
+     - Screen-reader friendly with `role="status"` and `aria-live="polite"` on the guidance banner.
+     - Respects `prefers-reduced-motion` and system voice settings.
+     - Falls back silently with zero console exceptions when Web Speech API is absent or restricted.
+
+### 8.5 Automated Extension Test Results
 
 * **Task E1 Test Suite (`test_obstruction_screen.py`)**:
   - Synthetic finger blob on document border → `FINGER_COVERING` flag correctly triggered.
@@ -446,5 +465,14 @@ Execution time for the entire 6-case baseline test suite is under **850 millisec
   - Motion direction estimation → Confirmed within $\pm 20^\circ$ accuracy.
   - Full pipeline integration → `BLUR_MOTION` and `BLUR_DEFOCUS` issue codes and fixes asserted.
   - 4/4 test suites PASSED.
+* **Task E6 Test Suite (`test_e6_speaker.mjs`)**:
+  - Speaker never repeats identical message within 2 seconds or without state change → **PASSED**.
+  - Strict 2-second minimum gap between different messages enforced → **PASSED**.
+  - New message spoken after $\ge 2\text{ s}$ gap → **PASSED**.
+  - Mute toggle defaults to off, suppresses speech when on, cancels active speech, and persists to localStorage → **PASSED**.
+  - Multilingual voice selection and localized translations for `en-IN`, `hi-IN`, `kn-IN` → **PASSED**.
+  - Silent fallback on unsupported environments with zero errors → **PASSED**.
+  - 9/9 assertions PASSED.
 * **Full Verification Pipeline (`verify_pipeline.py`)**:
   - 6/6 baseline regression cases PASSED.
+
