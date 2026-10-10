@@ -311,6 +311,10 @@ class InspectionResponse(BaseModel):
     issues: List[str] = []
     document_boundary: Optional[List[List[float]]] = None
     cropping_details: Optional[CroppingDetail] = None
+    obstruction: Optional[ObstructionDetail] = None
+    screen_capture: Optional[ScreenCaptureDetail] = None
+    detected_script: Optional[DetectedScriptInfo] = None
+    id_checks: Optional[IdChecks] = None
     processing_time_ms: float = 0.0
     filename: Optional[str] = None
     timestamp: Optional[str] = None
@@ -324,12 +328,13 @@ class InspectionResponse(BaseModel):
 frontend/src/
 ├── components/
 │   ├── Header.tsx              # Brand banner, live backend health pill, navigation
-│   ├── UploadZone.tsx          # Dual Upload & Camera buttons, dropzone, sample pills
+│   ├── UploadZone.tsx          # Dual Upload & Camera buttons, dropzone, sample presets
 │   ├── CameraCaptureModal.tsx  # Live WebRTC stream, viewfinder alignment, snapshot
 │   ├── ImagePreview.tsx        # Zoom, Pan, SVG Boundary, Clarity Modes, Split Slider
 │   ├── ResultCard.tsx          # 6 Quality Dimension Cards with severity styling
+│   ├── IssueList.tsx           # Categorized badge alerts (blocking vs warning)
 │   ├── FeedbackPanel.tsx       # Plain-language summary, fix guidance, export actions
-│   ├── TechnicalDetails.tsx    # Recharts metrics chart, JSON inspector
+│   ├── TechnicalDetails.tsx    # Recharts metrics chart, Script & ID checks, JSON inspector
 │   └── AboutModal.tsx          # Privacy policy and system architecture
 ├── pages/
 │   ├── Home.tsx                # SaaS product landing page
@@ -343,7 +348,7 @@ frontend/src/
 
 ## 7. Performance Benchmarks & Test Scenarios
 
-Automated assertions in `backend/verify_pipeline.py` validate all edge cases:
+Automated assertions in `backend/verify_pipeline.py` validate all baseline edge cases:
 
 | Scenario | Input Sample | Expected Type | Category | Readability | Rotation | Cropping | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -354,4 +359,61 @@ Automated assertions in `backend/verify_pipeline.py` validate all edge cases:
 | **Clipped Document** | `cropped_document.png` | `scan` | `General Document` | `true` (94%) | `0°` | `true` | **PASS** |
 | **Natural Scene / Photo** | `non_document.jpg` | `other` | `Non-Document` | `null` | `0°` | `false` | **PASS** |
 
-Execution time for the entire 6-case test suite is under **850 milliseconds**.
+Execution time for the entire 6-case baseline test suite is under **850 milliseconds**.
+
+---
+
+## 8. Extension Architectures (Tasks E1 & E2)
+
+### 8.1 Task E1: Finger/Hand Obstruction & Screen Photo Detection
+
+1. **Finger / Hand Obstruction Detection (`analyze_obstruction_and_screen` in `image_metrics.py`)**:
+   - **Border Band Analysis**: Evaluates the outer 12% perimeter margin of the image frame.
+   - **Skin-Tone Chrominance Thresholding**: Converts BGR to YCrCb color space, segmenting skin pixels with $Cr \in [133, 173]$ and $Cb \in [77, 127]$.
+   - **Contour & Area Validation**: Filters connected components larger than 1.5% of total frame area that intersect the document polygon boundary.
+   - **Region Classification**: Determines contact quadrant (`top`, `bottom`, `left`, `right`, `corner`).
+   - **Issue Triggers**: Issues `FINGER_COVERING` as warning, escalated to blocking if text readability or OCR confidence degrades significantly.
+
+2. **Screen Photo / Moiré Grid Detection**:
+   - **2D Fast Fourier Transform (FFT)**: Computes the 2D power spectrum of a 512×512 document crop, masks DC low frequencies, and calculates the ratio of periodic high-frequency peaks to median background noise energy.
+   - **Subpixel Color Dispersion**: Measures cross-channel chromatic variation across RGB subpixel periodicity.
+   - **Issue Triggers**: Generates `SCREEN_PHOTO` warning when `moire_score >= 0.45` or periodic energy ratio exceeds policy limits.
+
+### 8.2 Task E2: Multilingual OCR & Identity Document (ID) Physical Verification
+
+1. **Multilingual OCR Engine (`second_opinion.py`)**:
+   - Integrates multi-script Tesseract parsing driven by environment variable `OCR_LANGS` (default: `"eng+hin+kan"`).
+   - **Script Identification (`detect_script_from_text`)**: Evaluates recognized Unicode character code-points against Unicode Script ranges (Devanagari `[0x0900-0x097F]`, Kannada `[0x0C80-0x0CFF]`, Tamil, Telugu, Arabic, Latin).
+   - **Policy-Driven Quality Gates**: Applies adaptive confidence thresholds per script (`min_word_conf_latin = 60.0`, `min_word_conf_nonlatin = 45.0`) to avoid false-rejecting non-Latin orthographies.
+   - **Graceful Fallback**: Automatically cascades to English fallback with informative diagnostic note if system language packs are missing.
+
+2. **Document Categorization (Zero Filename Reliance)**:
+   - Discards input file names entirely to eliminate spoofing.
+   - Matches multilingual OCR keywords and regex tokens against domain dictionaries:
+     - **Aadhaar Card**: `aadhaar`, `uidai`, `आधार`, `ಆಧಾರ್`, `enrolment no`.
+     - **PAN Card**: `income tax`, `pan`, `permanent account`, `आयकर`, `govt. of india`.
+     - **Driving Licence**: `driving licence`, `motor vehicle`, `dl no`, `validity`.
+     - **Academic Marksheet**: `marksheet`, `grade card`, `cgpa`, `semester`, `university`.
+     - **Financial Invoice**: `invoice`, `bill`, `gst`, `tax`, `subtotal`, `amount due`.
+
+3. **Physical ID Card Integrity Verification (`run_id_card_checks`)**:
+   - **CR80 Aspect Ratio Compliance**: Asserts card boundary ratio against ISO/IEC 7810 ID-1 standard ($85.60 \times 53.98\text{ mm} \approx 1.586 \pm 0.08$).
+   - **Four-Corner Geometric Enclosure**: Confirms complete boundary polygon detection with all 4 corners visible in frame.
+   - **Central Glare Analysis**: Calculates specular reflections ($V \ge 240$) within the central 40% area of the card; flags `ID_CENTRAL_GLARE` if reflection exceeds threshold.
+   - **Portrait Presence Check**: Runs privacy-safe OpenCV Haar Cascade face detection (`haarcascade_frontalface_default.xml`) without identity extraction or facial biometric persistence.
+
+### 8.3 Automated Extension Test Results
+
+* **Task E1 Test Suite (`test_obstruction_screen.py`)**:
+  - Synthetic finger blob on document border → `FINGER_COVERING` flag correctly triggered.
+  - High-frequency periodic Moiré mesh → `SCREEN_PHOTO` and `moire_score` asserted.
+  - 4/4 assertions PASSED.
+* **Task E2 Test Suite (`test_e2_multilang.py`)**:
+  - Devanagari script detection → `Devanagari` script correctly identified.
+  - Kannada script detection → `Kannada` script correctly identified.
+  - Keyword category classification → 6/6 document types correctly matched without filename hints.
+  - Graceful fallback on missing language pack → Successfully falls back with warning note.
+  - CR80 ID Card check → Aspect ratio, corner integrity, and glare verified.
+  - 7/7 assertions PASSED.
+* **Full Verification Pipeline (`verify_pipeline.py`)**:
+  - 6/6 baseline regression cases PASSED.
