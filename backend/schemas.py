@@ -48,6 +48,24 @@ class DetectedScriptInfo(BaseModel):
     lang_note: Optional[str] = Field(default=None, description="Warning message if language pack fallback occurred")
 
 
+class BlurAnalysis(BaseModel):
+    """Task E4: Blur type classification for specific user coaching."""
+    blur_type: Literal["motion", "defocus", "none", "uncertain"] = Field(
+        description="Type of blur detected: motion, defocus, none, or uncertain"
+    )
+    blur_direction_deg: Optional[float] = Field(
+        default=None,
+        description="Estimated motion blur trajectory in degrees (0-180) if motion blur detected"
+    )
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description="Classification confidence score 0..1"
+    )
+    directional_energy_ratio: Optional[float] = None
+    sobel_xy_ratio: Optional[float] = None
+    fft_anisotropy: Optional[float] = None
+
+
 class InspectionResponse(BaseModel):
     is_document: bool
     document_type: Literal["photo", "scan", "other", "uncertain"]
@@ -72,6 +90,7 @@ class InspectionResponse(BaseModel):
     screen_capture: Optional[ScreenCaptureDetail] = None
     detected_script: Optional[DetectedScriptInfo] = None
     id_checks: Optional[IdChecks] = None
+    blur_analysis: Optional[BlurAnalysis] = None
     processing_time_ms: Optional[float] = None
     filename: Optional[str] = None
     timestamp: Optional[str] = None

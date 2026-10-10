@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Cpu, Gauge, Type, AlertCircle, Clock, CheckCircle, Globe, CreditCard } from 'lucide-react';
+import { ChevronDown, ChevronUp, Cpu, Gauge, Type, AlertCircle, Clock, CheckCircle, Globe, CreditCard, Sparkles } from 'lucide-react';
 import type { InspectionResult } from '../types/inspection';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -315,6 +315,86 @@ export const TechnicalDetails: React.FC<TechnicalDetailsProps> = ({ result }) =>
                   </span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Task E4: Blur Classification & Coaching Analysis */}
+          {result.blur_analysis && (
+            <div className="my-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <span>Blur Type Classification & Spectral Diagnostics (Task E4)</span>
+                </div>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                  result.blur_analysis.blur_type === 'none'
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    : result.blur_analysis.blur_type === 'motion'
+                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                    : result.blur_analysis.blur_type === 'defocus'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border border-slate-200'
+                }`}>
+                  {result.blur_analysis.blur_type} ({Math.round(result.blur_analysis.confidence * 100)}% conf)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="text-slate-500 block">Blur Type</span>
+                  <span className="font-bold text-slate-900 font-mono capitalize">
+                    {result.blur_analysis.blur_type}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    {result.blur_analysis.blur_type === 'motion' ? 'Camera / Hand shake' :
+                     result.blur_analysis.blur_type === 'defocus' ? 'Lens out of focus' :
+                     result.blur_analysis.blur_type === 'none' ? 'Sharp optical field' : 'Ambiguous signature'}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="text-slate-500 block">Motion Angle</span>
+                  <span className="font-bold text-slate-900 font-mono">
+                    {result.blur_analysis.blur_direction_deg !== null && result.blur_analysis.blur_direction_deg !== undefined
+                      ? `${result.blur_analysis.blur_direction_deg}°`
+                      : 'N/A (isotropic)'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    Directional trajectory
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="text-slate-500 block">Directional Energy Ratio</span>
+                  <span className="font-bold text-slate-900 font-mono">
+                    {result.blur_analysis.directional_energy_ratio ?? result.blur_analysis.sobel_xy_ratio ?? '1.0'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    Max/min gradient ratio
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                  <span className="text-slate-500 block">FFT Spectrum Anisotropy</span>
+                  <span className="font-bold text-slate-900 font-mono">
+                    {result.blur_analysis.fft_anisotropy ?? '1.0'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    λ₁ / λ₂ spectral moments
+                  </span>
+                </div>
+              </div>
+
+              {result.blur_analysis.blur_type === 'motion' && (
+                <p className="mt-2 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                  <span>💡 <strong>Coaching:</strong> Hold the phone steady or use both hands.</span>
+                </p>
+              )}
+              {result.blur_analysis.blur_type === 'defocus' && (
+                <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                  <span>💡 <strong>Coaching:</strong> Tap the text to focus and move slightly farther back.</span>
+                </p>
+              )}
             </div>
           )}
 

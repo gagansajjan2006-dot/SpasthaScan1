@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from schemas import InspectionResponse, ImageMetrics, ObstructionDetail, ScreenCaptureDetail, IdChecks, DetectedScriptInfo
+from schemas import InspectionResponse, ImageMetrics, ObstructionDetail, ScreenCaptureDetail, IdChecks, DetectedScriptInfo, BlurAnalysis
 import image_metrics
 import vision_analyzer
 import second_opinion
@@ -82,7 +82,17 @@ def generate_feedback_and_fix(
             "Capture the full document with all edges inside the frame."
         )
 
-    # 5. Blurriness / unreadable
+    # 5. Blur defects (Motion vs Defocus vs General Blurry)
+    if "BLUR_MOTION" in issues:
+        return (
+            "The document is blurred by camera motion. Retake the photo while keeping the camera completely still.",
+            "Hold the phone steady or use both hands."
+        )
+    if "BLUR_DEFOCUS" in issues:
+        return (
+            "The text appears out of focus. Tap the screen to focus on the text and move slightly farther back.",
+            "Tap the text to focus and move slightly farther back."
+        )
     if readable is False or "blurry_text" in issues:
         return (
             "The text appears blurry and difficult to read clearly. Retake the photo with the camera focused on the document.",
@@ -169,10 +179,23 @@ async def inspect_document(
     # 8. Analyze finger/hand obstruction and screen photo / moiré
     obs_screen_info = image_metrics.analyze_obstruction_and_screen(img_bgr, doc_mask, policy=policy)
 
+    # 9. Classify blur type for specific coaching (Task E4)
+    blur_analysis_raw = image_metrics.classify_blur(gray, policy=policy)
+
     # Identify rule-based issues
     issues: List[str] = []
     if base_metrics["blur_score"] < 65.0:
         issues.append("blurry_text")
+        if blur_analysis_raw["blur_type"] == "motion":
+            issues.append("BLUR_MOTION")
+        elif blur_analysis_raw["blur_type"] == "defocus":
+            issues.append("BLUR_DEFOCUS")
+    elif blur_analysis_raw["blur_type"] == "motion" and base_metrics["blur_score"] < 120.0:
+        issues.append("blurry_text")
+        issues.append("BLUR_MOTION")
+    elif blur_analysis_raw["blur_type"] == "defocus" and base_metrics["blur_score"] < 120.0:
+        issues.append("blurry_text")
+        issues.append("BLUR_DEFOCUS")
     if base_metrics["contrast"] < 25.0:
         issues.append("low_contrast")
     if base_metrics["brightness"] < 45.0:
@@ -309,6 +332,7 @@ async def inspect_document(
 
     obstruction_obj = ObstructionDetail(**obs_screen_info["obstruction"]) if (obs_screen_info["has_obstruction"] or obs_screen_info["obstruction_pct"] > 0) else None
     screen_capture_obj = ScreenCaptureDetail(**obs_screen_info["screen_capture"]) if (obs_screen_info["is_screen_photo"] or obs_screen_info["moire_score"] > 0) else None
+    blur_analysis_obj = BlurAnalysis(**blur_analysis_raw) if blur_analysis_raw else None
 
     processing_time_ms = round((time.time() - start_time) * 1000, 1)
 
@@ -334,6 +358,7 @@ async def inspect_document(
         screen_capture=screen_capture_obj,
         detected_script=detected_script_obj,
         id_checks=id_checks_obj,
+        blur_analysis=blur_analysis_obj,
         processing_time_ms=processing_time_ms,
         filename=filename,
         timestamp=datetime.utcnow().isoformat() + "Z"

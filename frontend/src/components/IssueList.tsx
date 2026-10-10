@@ -9,7 +9,9 @@ import {
   SunMedium, 
   EyeOff, 
   LayoutGrid,
-  ArrowRight
+  ArrowRight,
+  Vibrate,
+  Focus
 } from 'lucide-react';
 import type { InspectionResult } from '../types/inspection';
 
@@ -40,6 +42,26 @@ export const IssueList: React.FC<IssueListProps> = ({ result }) => {
 
   const getIssueConfig = (code: string) => {
     switch (code) {
+      case 'BLUR_MOTION':
+        return {
+          title: 'Motion Blur (Camera Shake)',
+          badge: 'Blocking Defect',
+          badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
+          icon: <Vibrate className="w-4 h-4 text-rose-600" />,
+          desc: `Directional motion blur detected${result.blur_analysis?.blur_direction_deg !== undefined ? ` along ~${result.blur_analysis.blur_direction_deg}° axis` : ''}. Hand shaking or phone movement during capture.`,
+          fix: 'Hold the phone steady or use both hands',
+          cardBorder: 'border-rose-200 bg-rose-50/40',
+        };
+      case 'BLUR_DEFOCUS':
+        return {
+          title: 'Defocus Blur (Out of Focus)',
+          badge: 'Blocking Defect',
+          badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
+          icon: <Focus className="w-4 h-4 text-rose-600" />,
+          desc: 'Isotropic optical defocus detected. The camera lens was not focused on the document surface.',
+          fix: 'Tap the text to focus and move slightly farther back',
+          cardBorder: 'border-rose-200 bg-rose-50/40',
+        };
       case 'FINGER_COVERING': {
         const isBlocking = obstruction?.is_blocking ?? false;
         return {

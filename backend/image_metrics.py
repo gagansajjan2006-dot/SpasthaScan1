@@ -634,3 +634,132 @@ def analyze_obstruction_and_screen(
         "screen_capture": screen_data,
     }
 
+
+def classify_blur(gray_doc: np.ndarray, policy: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Task E4: Classify blur type for specific user coaching.
+    Computes the directional gradient energy ratio (Sobel x vs y & multi-angle extrema)
+    and the 2D FFT spectrum anisotropy.
+    
+    Returns:
+      blur_type: "motion" | "defocus" | "none" | "uncertain"
+      blur_direction_deg: float (0-180) for motion blur, None otherwise
+      confidence: float (0.0 to 1.0)
+      directional_energy_ratio: float
+      sobel_xy_ratio: float
+      fft_anisotropy: float
+    """
+    policy = policy or {}
+    h, w = gray_doc.shape[:2]
+    if h < 32 or w < 32:
+        return {
+            "blur_type": "uncertain",
+            "blur_direction_deg": None,
+            "confidence": 0.0,
+            "directional_energy_ratio": None,
+            "sobel_xy_ratio": None,
+            "fft_anisotropy": None,
+        }
+
+    # Standardize processing resolution to max 512 for fast, scale-invariant analysis
+    scale = 512.0 / max(h, w)
+    if scale < 1.0:
+        proc_gray = cv2.resize(gray_doc, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+    else:
+        proc_gray = gray_doc
+
+    # 1. Laplacian variance
+    lap = float(cv2.Laplacian(proc_gray, cv2.CV_64F).var())
+
+    # 2. Directional gradient energy analysis (Sobel x vs y + closed-form angular extrema)
+    gx = cv2.Sobel(proc_gray, cv2.CV_64F, 1, 0, ksize=3)
+    gy = cv2.Sobel(proc_gray, cv2.CV_64F, 0, 1, ksize=3)
+
+    A = float(np.mean(gx**2))
+    B = float(np.mean(gy**2))
+    C = float(np.mean(gx * gy))
+
+    sobel_xy_ratio = round(max(A, B) / (min(A, B) + 1e-6), 2)
+
+    # Closed-form extrema of directional gradient energy E(theta) = A cos^2(th) + B sin^2(th) + 2C cos(th) sin(th)
+    R = np.sqrt(((A - B) / 2.0)**2 + C**2)
+    e_max = (A + B) / 2.0 + R
+    e_min = max((A + B) / 2.0 - R, 1e-6)
+    dir_ratio = round(float(e_max / e_min), 2)
+
+    # Blur smear direction: where directional gradient is minimum (edges smoothed along motion)
+    th_min_rad = 0.5 * np.arctan2(-2 * C, B - A)
+    blur_dir_deg = round(float(np.degrees(th_min_rad) % 180.0), 1)
+
+    # 3. FFT 2D power spectrum moment anisotropy
+    crop_512 = cv2.resize(proc_gray, (512, 512), interpolation=cv2.INTER_AREA).astype(np.float64)
+    hanning = np.hanning(512)[:, None] * np.hanning(512)[None, :]
+    f = np.fft.fftshift(np.fft.fft2(crop_512 * hanning))
+    mag = np.abs(f)
+
+    y_grid, x_grid = np.ogrid[:512, :512]
+    r = np.sqrt((x_grid - 256)**2 + (y_grid - 256)**2)
+    band = (r >= 25) & (r <= 220)
+
+    tot = float(np.sum(mag[band])) + 1e-6
+    m_xx = float(np.sum(((x_grid - 256)**2) * mag * band)) / tot
+    m_yy = float(np.sum(((y_grid - 256)**2) * mag * band)) / tot
+    m_xy = float(np.sum(((x_grid - 256) * (y_grid - 256)) * mag * band)) / tot
+    tr = m_xx + m_yy
+    det = m_xx * m_yy - m_xy**2
+    disc = np.sqrt(max(0.0, tr**2 - 4 * det))
+    l1 = (tr + disc) / 2.0
+    l2 = max((tr - disc) / 2.0, 1e-6)
+    fft_aniso = round(float(l1 / l2), 2)
+
+    # Policy thresholds
+    lap_sharp = float(policy.get("blur_sharp_lap_thresh", 180.0))
+    motion_aniso = float(policy.get("blur_motion_aniso_thresh", 1.55))
+    defocus_aniso = float(policy.get("blur_defocus_aniso_thresh", 1.48))
+
+    # Decision logic:
+    # A. Clean document: high isotropic sharpness OR pristine high-contrast scan with razor edges on both axes
+    if (min(A, B) > 1000.0 and lap >= 1000.0) or (lap >= lap_sharp and fft_aniso < 1.65 and dir_ratio < 4.0):
+        return {
+            "blur_type": "none",
+            "blur_direction_deg": None,
+            "confidence": min(1.0, round(lap / 350.0, 2)),
+            "directional_energy_ratio": dir_ratio,
+            "sobel_xy_ratio": sobel_xy_ratio,
+            "fft_anisotropy": fft_aniso,
+        }
+
+    # B. Motion blur: high spectral anisotropy across the 2D Fourier power spectrum
+    if fft_aniso >= motion_aniso:
+        conf = float(np.clip(0.72 + (fft_aniso - motion_aniso) * 0.15, 0.72, 0.98))
+        return {
+            "blur_type": "motion",
+            "blur_direction_deg": blur_dir_deg,
+            "confidence": round(conf, 2),
+            "directional_energy_ratio": dir_ratio,
+            "sobel_xy_ratio": sobel_xy_ratio,
+            "fft_anisotropy": fft_aniso,
+        }
+
+    # C. Defocus blur: low spectral anisotropy (symmetric isotropic optical attenuation)
+    if fft_aniso <= defocus_aniso:
+        conf = float(np.clip(0.75 + (defocus_aniso - fft_aniso) * 0.35, 0.72, 0.98))
+        return {
+            "blur_type": "defocus",
+            "blur_direction_deg": None,
+            "confidence": round(conf, 2),
+            "directional_energy_ratio": dir_ratio,
+            "sobel_xy_ratio": sobel_xy_ratio,
+            "fft_anisotropy": fft_aniso,
+        }
+
+    # D. Return uncertain instead of guessing
+    return {
+        "blur_type": "uncertain",
+        "blur_direction_deg": None,
+        "confidence": 0.50,
+        "directional_energy_ratio": dir_ratio,
+        "sobel_xy_ratio": sobel_xy_ratio,
+        "fft_anisotropy": fft_aniso,
+    }
+

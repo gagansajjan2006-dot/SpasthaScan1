@@ -57,6 +57,15 @@ export interface IdChecks {
   face_cascade_available: boolean;
 }
 
+export interface BlurAnalysis {
+  blur_type: 'motion' | 'defocus' | 'none' | 'uncertain';
+  blur_direction_deg?: number | null;
+  confidence: number;
+  directional_energy_ratio?: number | null;
+  sobel_xy_ratio?: number | null;
+  fft_anisotropy?: number | null;
+}
+
 export interface InspectionResult {
   is_document: boolean;
   document_type: DocumentType;
@@ -81,6 +90,7 @@ export interface InspectionResult {
   screen_capture?: ScreenCaptureDetail | null;
   detected_script?: DetectedScriptInfo | null;
   id_checks?: IdChecks | null;
+  blur_analysis?: BlurAnalysis | null;
   processing_time_ms?: number;
   filename?: string;
   timestamp?: string;
