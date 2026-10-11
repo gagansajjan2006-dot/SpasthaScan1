@@ -111,7 +111,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         className="hidden"
       />
 
-      {/* Live Camera Scanner Modal */}
+      {/* Live Camera Scanner Modal with Real-Time Spoken Coach */}
       <CameraCaptureModal
         isOpen={isCameraModalOpen}
         onClose={() => setIsCameraModalOpen(false)}
@@ -124,31 +124,32 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all duration-200 select-none ${
+          className={`relative border-2 border-dashed rounded-3xl p-8 sm:p-12 text-center transition-all duration-200 select-none backdrop-blur-xl ${
             isDragging
-              ? 'border-indigo-600 bg-indigo-50/70 scale-[1.01]'
-              : 'border-slate-300 bg-white hover:border-indigo-400/80 shadow-xs'
+              ? 'border-teal-400 bg-violet-950/40 scale-[1.01]'
+              : 'border-slate-800 bg-slate-900/80 hover:border-violet-500/50 shadow-2xl'
           }`}
         >
           <div className="flex flex-col items-center justify-center max-w-lg mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-xs">
+            {/* Ambient glowing icon container */}
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600/30 to-teal-400/20 border border-violet-500/40 flex items-center justify-center text-teal-300 mb-5 shadow-lg shadow-violet-950/50">
               <UploadCloud className="w-8 h-8 transition-transform group-hover:scale-110" />
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 mb-1">
+            <h3 className="text-xl font-bold text-white mb-1.5">
               Select or Scan Document Image
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 mb-5">
+            <p className="text-xs sm:text-sm text-slate-400 mb-6">
               Drag and drop your document file here, or choose an option below:
             </p>
 
             {/* Prominent Action Buttons: Upload File or Document VS Use Camera */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto mb-6">
               {/* Option 1: Upload File or Document */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-md hover:shadow-indigo-200 transition-all flex items-center justify-center gap-2 active:scale-98"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-violet-600 via-indigo-600 to-teal-500 hover:from-violet-500 hover:to-teal-400 text-white shadow-lg shadow-indigo-950/60 transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
               >
                 <FileText className="w-4 h-4" />
                 <span>Upload File or Document</span>
@@ -158,32 +159,32 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCameraModalOpen(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 active:scale-98"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800/90 hover:bg-slate-750 text-slate-200 border border-slate-700 shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
               >
-                <Camera className="w-4 h-4 text-emerald-400" />
+                <Camera className="w-4 h-4 text-teal-400" />
                 <span>Scan with Camera</span>
               </button>
             </div>
 
             {/* Allowed formats metadata */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
-              <span className="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">JPG</span>
-              <span className="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">JPEG</span>
-              <span className="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">PNG</span>
-              <span className="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">WEBP</span>
-              <span className="text-slate-400">•</span>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
+              <span className="px-2 py-0.5 bg-slate-950/80 border border-slate-800 rounded-md font-mono text-slate-300">JPG</span>
+              <span className="px-2 py-0.5 bg-slate-950/80 border border-slate-800 rounded-md font-mono text-slate-300">JPEG</span>
+              <span className="px-2 py-0.5 bg-slate-950/80 border border-slate-800 rounded-md font-mono text-slate-300">PNG</span>
+              <span className="px-2 py-0.5 bg-slate-950/80 border border-slate-800 rounded-md font-mono text-slate-300">WEBP</span>
+              <span className="text-slate-500">•</span>
               <span>Max {MAX_SIZE_MB} MB</span>
             </div>
 
             {/* Quick Sample Presets */}
             <div 
-              className="mt-6 pt-5 border-t border-slate-100 w-full"
+              className="mt-7 pt-6 border-t border-slate-800 w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 Or test with sample documents:
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 {[
                   { label: 'Clear Certificate', file: 'clear_certificate.jpg' },
                   { label: 'Clear Scan', file: 'clear_document_scan.png' },
@@ -200,12 +201,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                         const res = await fetch(`/samples/${sample.file}`);
                         const blob = await res.blob();
                         const file = new File([blob], sample.file, { type: blob.type || 'image/jpeg' });
-                        onFileSelected(file);
+                        validateAndSetFile(file);
                       } catch (err) {
                         console.error('Failed to load sample', err);
                       }
                     }}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 transition-colors"
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-950/80 hover:bg-violet-950/60 hover:text-teal-300 text-slate-300 border border-slate-800 hover:border-violet-500/40 transition-all cursor-pointer"
                   >
                     {sample.label}
                   </button>
@@ -215,27 +216,27 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           </div>
         </div>
       ) : (
-        /* Selected File Card */
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        /* Selected File Card in Dark Navy Glassmorphism */
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-7 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             
             {/* File info */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-indigo-50 border border-indigo-100 overflow-hidden flex items-center justify-center shrink-0">
-                <FileImage className="w-8 h-8 text-indigo-600" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600/20 to-teal-400/20 border border-violet-500/30 overflow-hidden flex items-center justify-center shrink-0 text-teal-300">
+                <FileImage className="w-8 h-8" />
               </div>
 
               <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-semibold text-slate-900 text-base truncate max-w-xs sm:max-w-md" title={selectedFile.name}>
+                <div className="flex items-center gap-2.5">
+                  <h4 className="font-semibold text-white text-base truncate max-w-xs sm:max-w-md" title={selectedFile.name}>
                     {selectedFile.name}
                   </h4>
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 shrink-0">
                     Ready
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
                   <span>{formatFileSize(selectedFile.size)}</span>
                   {imageDimensions && (
                     <>
@@ -250,12 +251,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             </div>
 
             {/* Actions for selected file */}
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isAnalyzing}
-                className="px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Upload Other
@@ -265,9 +266,9 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 type="button"
                 onClick={() => setIsCameraModalOpen(true)}
                 disabled={isAnalyzing}
-                className="px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                <Camera className="w-3.5 h-3.5 text-teal-400" />
                 Retake
               </button>
 
@@ -275,7 +276,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 type="button"
                 onClick={onClear}
                 disabled={isAnalyzing}
-                className="px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-3.5 py-2 text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-950/60 border border-rose-500/30 rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Remove
@@ -285,14 +286,14 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
           {/* Upload progress bar */}
           {uploadProgress !== null && isAnalyzing && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between text-xs text-slate-600 mb-1.5">
-                <span>Uploading & Processing Image...</span>
-                <span className="font-semibold text-indigo-600">{uploadProgress}%</span>
+            <div className="mt-5 pt-5 border-t border-slate-800">
+              <div className="flex items-center justify-between text-xs text-slate-300 mb-2 font-mono">
+                <span>Executing Automated Inspection Pipeline...</span>
+                <span className="font-bold text-teal-400">{uploadProgress}%</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
                 <div
-                  className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-violet-600 via-indigo-500 to-teal-400 h-2 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(45,212,191,0.5)]"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -300,24 +301,24 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
           )}
 
           {/* Analyze CTA */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs text-slate-500 hidden sm:inline">
-              Our automated computer vision & OCR pipeline will inspect quality metrics.
+          <div className="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between">
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Our 6-parameter OpenCV engine runs in under 30ms with zero hallucination.
             </span>
 
             <button
               type="button"
               onClick={onAnalyze}
               disabled={isAnalyzing}
-              className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 text-white shadow-sm transition-all ${
+              className={`w-full sm:w-auto px-7 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 text-white shadow-xl transition-all cursor-pointer ${
                 isAnalyzing
-                  ? 'bg-indigo-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-indigo-700 shadow-indigo-200 hover:shadow-md hover:shadow-indigo-300 active:scale-98'
+                  ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-teal-500 hover:from-violet-500 hover:to-teal-400 shadow-indigo-950/80 active:scale-98'
               }`}
             >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
                   <span>Inspecting Document...</span>
                 </>
               ) : (
@@ -333,10 +334,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 
       {/* Validation or API error alert */}
       {activeError && (
-        <div className="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-xs sm:text-sm animate-in fade-in duration-150">
-          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+        <div className="mt-4 p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 flex items-start gap-3 text-rose-200 text-xs sm:text-sm animate-in fade-in duration-150">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <span className="font-semibold">Document upload rejected: </span>
+            <span className="font-semibold text-rose-300">Document upload rejected: </span>
             <span>{activeError}</span>
           </div>
         </div>

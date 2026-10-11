@@ -18,11 +18,11 @@ export const Header: React.FC<HeaderProps> = ({
   health,
 }) => {
   const isOnline = health?.status === 'healthy';
-  const isHome = currentPage === 'home';
+  const isDark = currentPage === 'home' || currentPage === 'inspect';
 
   return (
     <header className={`sticky top-0 z-40 backdrop-blur-md transition-all duration-200 border-b ${
-      isHome 
+      isDark 
         ? 'bg-[#070b14]/90 border-slate-800/80 text-white shadow-lg shadow-black/20' 
         : 'bg-white/90 border-slate-200 text-slate-900 shadow-xs'
     }`}>
@@ -39,12 +39,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span className={`font-bold text-xl tracking-tight transition-colors ${
-                isHome ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-indigo-600'
+                isDark ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-indigo-600'
               }`}>
                 SpasthaScan
               </span>
               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md border ${
-                isHome 
+                isDark 
                   ? 'bg-violet-950/80 text-violet-300 border-violet-500/30' 
                   : 'bg-indigo-50 text-indigo-700 border-indigo-200'
               }`}>
@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className={`text-[10px] font-medium -mt-1 hidden sm:block ${
-              isHome ? 'text-slate-400' : 'text-slate-500'
+              isDark ? 'text-slate-400' : 'text-slate-500'
             }`}>
               Quality Inspector
             </p>
@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Navigation Links */}
         <nav className={`hidden md:flex items-center gap-1 p-1 rounded-xl border ${
-          isHome 
+          isDark 
             ? 'bg-slate-900/80 border-slate-800' 
             : 'bg-slate-100/80 border-slate-200/60'
         }`}>
@@ -69,10 +69,10 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onNavigate('home')}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
               currentPage === 'home'
-                ? isHome 
+                ? isDark 
                   ? 'bg-violet-600 text-white shadow-sm' 
                   : 'bg-white text-slate-900 shadow-xs'
-                : isHome
+                : isDark
                   ? 'text-slate-300 hover:text-white hover:bg-slate-800'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
             }`}
@@ -84,8 +84,10 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onNavigate('inspect')}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
               currentPage === 'inspect'
-                ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : isHome
+                ? isDark
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm font-semibold'
+                  : 'bg-white text-slate-900 shadow-xs font-semibold'
+                : isDark
                   ? 'text-slate-300 hover:text-white hover:bg-slate-800'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
             }`}
@@ -98,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
               currentPage === 'history'
                 ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                : isHome
+                : isDark
                   ? 'text-slate-300 hover:text-white hover:bg-slate-800'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
             }`}
@@ -109,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenAbout}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-              isHome
+              isDark
                 ? 'text-slate-300 hover:text-white hover:bg-slate-800'
                 : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
             }`}
@@ -126,10 +128,10 @@ export const Header: React.FC<HeaderProps> = ({
             title={isOnline ? 'Computer Vision & OCR engine ready' : 'Connecting to inspection service...'}
             className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
               isOnline
-                ? isHome
+                ? isDark
                   ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
                   : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : isHome
+                : isDark
                   ? 'bg-amber-950/60 text-amber-300 border-amber-500/30'
                   : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}

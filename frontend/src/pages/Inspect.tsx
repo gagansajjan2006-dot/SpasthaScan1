@@ -100,16 +100,22 @@ export const Inspect: React.FC<InspectProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
+      {/* Ambient background glow */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-violet-600/15 via-indigo-500/10 to-teal-400/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+
       {/* Top Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Document Quality Inspector
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <span>Document Quality Inspector</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-950/80 text-violet-300 border border-violet-500/30 font-mono">
+              Live Edge CV
+            </span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Detect orientation, blur, contrast, cropping issues, and background clutter.
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Deterministic orientation, blur classification, 4-edge cropping, Moiré fraud detection, and background analysis.
           </p>
         </div>
 
@@ -117,9 +123,9 @@ export const Inspect: React.FC<InspectProps> = ({
           <button
             type="button"
             onClick={handleClear}
-            className="self-start sm:self-auto px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs transition-all flex items-center gap-1.5"
+            className="self-start sm:self-auto px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900/90 border border-slate-700/80 hover:bg-slate-800 text-slate-200 shadow-lg hover:border-slate-600 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5 text-teal-400" />
             <span>Upload New Document</span>
           </button>
         )}

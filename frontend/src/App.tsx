@@ -47,8 +47,12 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const isDarkPage = currentPage === 'home' || currentPage === 'inspect';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-violet-500 selection:text-white transition-colors duration-200 ${
+      isDarkPage ? 'bg-[#070b14] text-slate-100' : 'bg-slate-50 text-slate-900'
+    }`}>
       {/* Top Application Header */}
       <Header
         currentPage={currentPage}
@@ -81,7 +85,7 @@ export function App() {
 
       {/* Application Footer */}
       <footer className={`border-t py-8 text-xs transition-colors duration-200 ${
-        currentPage === 'home'
+        isDarkPage
           ? 'border-slate-850 bg-[#050811] text-slate-400'
           : 'border-slate-200 bg-white text-slate-500'
       }`}>
