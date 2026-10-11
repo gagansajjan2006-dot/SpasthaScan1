@@ -37,3 +37,56 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.8);
 }
+
+@keyframes scanBeam {
+  0% {
+    top: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 98%;
+    opacity: 0.8;
+  }
+}
+
+@keyframes floatBobSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes floatBobDelayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-scan-beam {
+  animation: scanBeam 2.8s ease-in-out infinite alternate;
+}
+
+.animate-float-slow {
+  animation: floatBobSlow 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatBobDelayed 4.5s ease-in-out infinite 1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-beam,
+  .animate-float-slow,
+  .animate-float-delayed {
+    animation: none !important;
+  }
+}
+
