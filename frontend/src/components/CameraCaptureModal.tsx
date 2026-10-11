@@ -292,17 +292,32 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
   };
 
+  // Keyboard shortcut: Space or Enter to snap photo when camera modal is active
+  useEffect(() => {
+    if (!isOpen || capturedPreview) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        handleCapturePhoto();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, capturedPreview]);
+
   if (!isOpen) return null;
 
   // Localized coach message display
   const displayCoachMessage = coachSpeaker.translateMessage(coachMessage, uiLanguage);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl text-white flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl text-white flex flex-col max-h-[92vh]">
         
         {/* Header with Camera Title, Mute Toggle, and Language Selector */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-900/95 shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
               <Camera className="w-5 h-5" />
@@ -373,7 +388,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
         </div>
 
         {/* Viewfinder / Video Stream Container */}
-        <div className="relative flex-1 bg-black min-h-[360px] sm:min-h-[420px] flex items-center justify-center overflow-hidden">
+        <div className="relative flex-1 bg-black min-h-[240px] max-h-[58vh] flex items-center justify-center overflow-hidden">
           
           {/* Hidden Snapshot Canvas */}
           <canvas ref={canvasRef} className="hidden" />
@@ -404,7 +419,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                   <button
                     type="button"
                     onClick={startCamera}
-                    className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors inline-flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     Retry Camera
@@ -417,11 +432,11 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-contain max-h-[440px]"
+                    className="w-full h-full object-contain max-h-[420px]"
                   />
 
                   {/* Document Viewfinder Framing Box with Corner Markers */}
-                  <div className="absolute inset-8 sm:inset-12 pointer-events-none border-2 border-indigo-400/40 rounded-2xl flex flex-col justify-between p-2">
+                  <div className="absolute inset-6 sm:inset-10 pointer-events-none border-2 border-indigo-400/40 rounded-2xl flex flex-col justify-between p-2">
                     {/* Top corners */}
                     <div className="flex justify-between">
                       <div className="w-8 h-8 border-t-4 border-l-4 border-indigo-400 rounded-tl-lg" />
@@ -451,6 +466,27 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                       <div className="w-8 h-8 border-b-4 border-r-4 border-indigo-400 rounded-br-lg" />
                     </div>
                   </div>
+
+                  {/* Floating Circular Shutter Button over Viewfinder (Always visible & prominent!) */}
+                  <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center justify-center gap-1 z-30 pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={handleCapturePhoto}
+                      disabled={isInitializing || !!error}
+                      title="Click to take photo (or press Space)"
+                      aria-label="Click to capture photo"
+                      className="group relative flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 rounded-full border-4 border-white/95 bg-white/20 hover:bg-white/30 backdrop-blur-md shadow-2xl active:scale-95 hover:scale-105 transition-all cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-400/50"
+                    >
+                      <span className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-cyan-400 via-indigo-500 to-violet-500 group-hover:from-cyan-300 group-hover:to-violet-400 shadow-lg flex items-center justify-center text-white transition-all">
+                        <Camera className="w-6 h-6 sm:w-7 sm:h-7 transition-transform group-hover:scale-110" />
+                      </span>
+                      <span className="absolute inset-0 rounded-full border-2 border-white/60 animate-ping opacity-30 pointer-events-none" />
+                    </button>
+                    <span className="text-[11px] font-semibold text-white drop-shadow-md bg-slate-950/85 px-3 py-0.5 rounded-full border border-slate-700/80 backdrop-blur-xs flex items-center gap-1">
+                      <span>Click to Take Photo</span>
+                      <span className="text-slate-400 text-[10px] hidden sm:inline">(or Space)</span>
+                    </span>
+                  </div>
                 </div>
               )}
             </>
@@ -458,28 +494,28 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-4 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-5 py-3.5 border-t border-slate-800 bg-slate-950 shrink-0 flex items-center justify-between gap-3">
           
           {/* Left: Switch Camera */}
-          {!capturedPreview && !error && (
+          {!capturedPreview && !error ? (
             <button
               type="button"
               onClick={handleToggleFacingMode}
-              className="px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <SwitchCamera className="w-4 h-4" />
-              <span className="hidden sm:inline">Flip Camera</span>
+              <span>Flip Camera</span>
             </button>
-          )}
+          ) : <div />}
 
           {/* Right Action buttons */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2.5">
             {capturedPreview ? (
               <>
                 <button
                   type="button"
                   onClick={handleRetake}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-1.5"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Retake</span>
@@ -487,7 +523,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirmPhoto}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-indigo-900/40 transition-all flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-indigo-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                   <span>Use This Document</span>
@@ -498,7 +534,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -506,10 +542,10 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
                   type="button"
                   onClick={handleCapturePhoto}
                   disabled={isInitializing || !!error}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white shadow-md shadow-indigo-900/40 transition-all flex items-center gap-2"
+                  className="px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 text-white shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Capture Photo</span>
+                  <span>Click Photo</span>
                 </button>
               </>
             )}
